@@ -1,2 +1,3 @@
 
 Überblick zu aktuellen Aufgaben der Person.
+Preprocessing... Stopwords /Stemming
