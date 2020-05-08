@@ -1,2 +1,2 @@
 
-Überblick zu aktuellen Aufgaben der Person.
+- Research LSTM und aufsetzten/reproduzieren https://github.com/changhuixu/LSTM-sentiment-analysis
