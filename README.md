@@ -3,8 +3,30 @@
 Goal is to train a model which is able to extract emotions from text.
 
 
+### Workflow
+
+First checkout repository via
+```shell
+$ git clone https://github.com/DennisHamann/sentiment_analysis.git
+```
+For all changes we create a new branch
+```shell
+# create a topic branch
+$ git checkout -b feature
+
+# ( making changes ... )
+$ git commit -m "done with feature"
+
+git push -u origin HEAD
+```
+
+Then open https://github.com/DennisHamann/sentiment_analysis/branches and create a pull request in the UI. 
+Do **not** merge the pull request. This is done by the owner of the repository. 
+
+
 ### Organization ###
 For now we note our tasks in plannig/tasks.
+
 
 
 ### Technology ###
