@@ -9,6 +9,7 @@ First checkout repository via
 ```shell
 $ git clone https://github.com/DennisHamann/sentiment_analysis.git
 ```
+**Never** commit directly into master branch!
 For all changes we create a new branch
 ```shell
 # create a topic branch
