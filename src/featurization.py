@@ -41,3 +41,7 @@ if __name__ == '__main__':
     train_output = os.path.join(sys.argv[2], 'train.pkl')
     test_output = os.path.join(sys.argv[2], 'test.pkl')
     mkdir_p(sys.argv[2])
+    writepath = os.path.join(sys.argv[2], 'features.txt')
+    mode = 'a' if os.path.exists(writepath) else 'w'
+    with open(writepath, mode) as f:
+        f.write('Features')
