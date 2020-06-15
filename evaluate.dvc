@@ -1,15 +1,15 @@
-md5: 2034b18669060031d2f3613845fe71e4
-cmd: python src/evaluate.py model.txt data/features auc.json
+md5: 14943fdeda5ba276c649a36269444633
+cmd: python src/evaluate.py data/models/model.txt data/features data/scores
 deps:
-- md5: d4868db462d9fd42b3aa28e75fde4842
+- md5: ed2ebd2258f1256b6ad25e630aad32bf
   path: src/evaluate.py
 - md5: 29c2c02a361c9d7028472e5d92cd4a54
-  path: model.txt
-- md5: d751713988987e9331980363e24189ce.dir
+  path: data/models/models.txt
+- md5: 2b71f60cb3761a0e000df9c182ef4b49.dir
   path: data/features
 outs:
 - md5: d9a6247a22cf2da32d0c637546966170
-  path: auc.json
+  path: data/scores/auc.json
   cache: false
   metric: true
   persist: false
