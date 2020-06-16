@@ -1,7 +1,0 @@
-md5: ea38b5069fd1f16dd6457b2c8d2b4175
-outs:
-- md5: 23190bc559a9763d9df68edc4e157845
-  path: sentiment_analysis.pod
-  cache: true
-  metric: false
-  persist: false
