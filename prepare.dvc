@@ -1,10 +1,10 @@
-md5: 0f4aa0643f49f3055cca8ce8e45533f0
-cmd: python src/prepare.py data/dummy_data.txt data/prepared
+md5: a1da0833db66847e97a192ac738761fa
+cmd: python src/prepare.py data/dataset/sentiment_analysis.pod data/prepared
 deps:
 - md5: 5e89023798679b052b1c93856d526a5d
   path: src/prepare.py
-- md5: a687cec9c31340aa0d000c212ec64bb7
-  path: data/dummy_data.txt
+- md5: 23190bc559a9763d9df68edc4e157845
+  path: data/dataset/sentiment_analysis.pod
 outs:
 - md5: e66f456b528c63e0a71f212c716962d0.dir
   path: data/prepared
