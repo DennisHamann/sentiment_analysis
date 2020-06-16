@@ -1,5 +1,5 @@
-md5: 899b7216011c702de569f0e42035e6cf
-cmd: python src/evaluate.py data/models/model.txt data/features data/scores
+md5: c22e41de01d17499bbf345f1c3ff528f
+cmd: python3 src/evaluate.py data/models/models.txt data/features data/scores
 deps:
 - md5: ed2ebd2258f1256b6ad25e630aad32bf
   path: src/evaluate.py
