@@ -1,0 +1,7 @@
+md5: a7b32e5ebcc1bca2de660fedf930fb13
+outs:
+- md5: 530b7c72bac52ce15b86761600cd4269
+  path: trainset.zip
+  cache: true
+  metric: false
+  persist: false

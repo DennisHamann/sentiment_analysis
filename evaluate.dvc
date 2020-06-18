@@ -1,11 +1,11 @@
-md5: 14943fdeda5ba276c649a36269444633
-cmd: python src/evaluate.py data/models/model.txt data/features data/scores
+md5: c22e41de01d17499bbf345f1c3ff528f
+cmd: python3 src/evaluate.py data/models/models.txt data/features data/scores
 deps:
 - md5: ed2ebd2258f1256b6ad25e630aad32bf
   path: src/evaluate.py
 - md5: 29c2c02a361c9d7028472e5d92cd4a54
   path: data/models/models.txt
-- md5: 2b71f60cb3761a0e000df9c182ef4b49.dir
+- md5: 761e61670d331b2922ed3d89e10f62fe.dir
   path: data/features
 outs:
 - md5: d9a6247a22cf2da32d0c637546966170

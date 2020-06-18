@@ -48,4 +48,8 @@ and run tests
 ```python
 # todo
 ```
+### Google Drive ###
 
+We use google drive for data storage
+Account: sentiment-analysis@web.de
+Passwort: iske2020

@@ -1,7 +1,0 @@
-md5: b10bb345335b58121341cda49a2c096f
-outs:
-- md5: a687cec9c31340aa0d000c212ec64bb7
-  path: dummy_data.txt
-  cache: true
-  metric: false
-  persist: false

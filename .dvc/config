@@ -1,0 +1,5 @@
+[core]
+    remote = myremote
+['remote "myremote"']
+    url = gdrive://1F7DJlzOhGqjUIMVefy1Dcdc2OIPQt2jU
+    gdrive_user_credentials_file = tmp/myremote-credentials.json
