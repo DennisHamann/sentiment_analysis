@@ -1,13 +1,7 @@
-md5: 8121db7ccaa6efb18abddfa13a34632c
-cmd: python3 src/prepare.py data/dataset/trainset.zip data/prepared
+md5: 455e037e6119ad8df453cb15d35056dd
+cmd: data/prepared python3 src/prepare.py data/dataset data/prepared
 deps:
 - md5: 5e89023798679b052b1c93856d526a5d
   path: src/prepare.py
-- md5: 530b7c72bac52ce15b86761600cd4269
-  path: data/dataset/trainset.zip
-outs:
-- md5: e66f456b528c63e0a71f212c716962d0.dir
-  path: data/prepared
-  cache: true
-  metric: false
-  persist: false
+- md5: cd8a92af0e15242bd5f081be652f7cf6.dir
+  path: data/dataset
