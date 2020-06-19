@@ -1,7 +1,13 @@
-md5: 455e037e6119ad8df453cb15d35056dd
-cmd: data/prepared python3 src/prepare.py data/dataset data/prepared
+md5: 48069afa52d6e62f6d2816af9c3c7d42
+cmd: python3 src/prepare.py data/dataset data/prepared
 deps:
-- md5: 5e89023798679b052b1c93856d526a5d
+- md5: 9850e2034732255193e8cd79efefe31e
   path: src/prepare.py
 - md5: cd8a92af0e15242bd5f081be652f7cf6.dir
   path: data/dataset
+outs:
+- md5: 969068e6ff1a215984b29f3bce7322ed.dir
+  path: data/prepared
+  cache: true
+  metric: false
+  persist: false

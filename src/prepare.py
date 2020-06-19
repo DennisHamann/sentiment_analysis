@@ -5,6 +5,7 @@ import random
 import re
 import os
 import errno
+import zipfile
 
 
 def mkdir_p(path):
@@ -22,23 +23,25 @@ if __name__ == '__main__':
         sys.stderr.write('Arguments error. Usage:\n')
         sys.stderr.write('\tpython prepare.py data\n')
         sys.exit(1)
-    # Test data set split ratio
+
+    # Maybe implement other ratios if necessary, Test data set split ratio
     split = 0.20
     random.seed(20170426)
 
-    input = sys.argv[0]
-    output_train = os.path.join('data', 'prepared', 'train.tsv')
-    output_test = os.path.join('data', 'prepared', 'test.tsv')
+    input = sys.argv[1]
+    output = sys.argv[2]
 
-    mkdir_p(os.path.join('data', 'prepared'))
-    writepath = os.path.join('data', 'prepared', 'train.txt')
-    mode = 'a' if os.path.exists(writepath) else 'w'
-    with open(writepath, mode) as f:
-        f.write('Training')
-    writepath = os.path.join('data', 'prepared', 'test.txt')
-    mode = 'a' if os.path.exists(writepath) else 'w'
-    with open(writepath, mode) as f:
-        f.write('Testing')
+    input_train = os.path.join(input, 'trainset.zip')
+    input_test = os.path.join(input, 'testset.zip')
+    print(input_train, input_test)
+    
+    zf = zipfile.ZipFile(input_train, 'r')
+    zf.extractall(output)
+    zf.close()
+    zf = zipfile.ZipFile(input_test, 'r')
+    zf.extractall(output)
+    zf.close()
+
 
 
 
