@@ -87,6 +87,6 @@ if __name__ == '__main__':
 
     #save model to output folder
 
-    model.save('writepath')
+    model.save(writepath)
 
 
