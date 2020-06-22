@@ -4,4 +4,5 @@ pydrive2
 pandas
 nltk
 bs4
-
+tensorflow
+keras
