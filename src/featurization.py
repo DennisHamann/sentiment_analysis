@@ -17,6 +17,7 @@ import pickle
 # But they will be removed  while averaging feature vectors.
 from nltk.corpus import stopwords
 import os
+from os import path
 import sys
 import errno
 # word2vec expects a list of lists.
@@ -69,6 +70,8 @@ def featureVecMethod(words, model, num_features):
     featureVec = np.zeros(num_features, dtype="float32")
     nwords = 0
     list = []
+
+
     for word in words:
         if word in index2word_set:
             nwords = nwords + 1
@@ -77,6 +80,18 @@ def featureVecMethod(words, model, num_features):
     return list
 
 
+def getAvgFeatureVecs(reviews, model, num_features):
+    counter = 0
+    listoflist = [] # Maybe as np array np.zeros((len(reviews), num_features), dtype="float32")
+    for review in list(reviews):
+        # Printing a status message every 1000th review
+        if counter % 10000 == 0:
+            print("Review %d of %d" % (counter, len(reviews)))
+
+        listoflist.append(featureVecMethod(review, model, num_features))
+        counter = counter + 1
+
+    return listoflist
 
 
 if __name__ == '__main__':
@@ -89,38 +104,42 @@ if __name__ == '__main__':
     path_test = os.path.join(input, 'Test.csv')
     train = pd.read_csv('data/prepared/Train.csv')
     test = pd.read_csv('data/prepared/Test.csv')
-
-    sentences = []
-    print("Parsing sentences from training set")
-    for review in train["text"]:
-        sentences += review_sentences(review, tokenizer)
-
-    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-
     # Creating the model and setting values for the various parameters, To do: finetuning
     num_features = 80  # Word vector dimensionality
     min_word_count = 40  # Minimum word count
     num_workers = 4  # Number of parallel threads
     context = 10  # Context window size
     downsampling = 1e-3  # (0.001) Downsample setting for frequent words
-    
-    # Initializing the train model
+    model_path = os.path.join(input, f"{num_features}features_model")
+    if path.exists(model_path):
+        model = word2vec.Word2Vec.load(os.path.join(input, f"{num_features}features_model"))
+    else:
+        sentences = []
+        print("Parsing sentences from training set")
+        for review in train["text"]:
+            sentences += review_sentences(review, tokenizer)
 
-    print("Training model....")
-    model = word2vec.Word2Vec(sentences, \
-                              workers=num_workers, \
-                              size=num_features, \
-                              min_count=min_word_count, \
-                              window=context,
-                              sample=downsampling)
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-    # To make the model memory efficient
-    model.init_sims(replace=True)
+        
 
-    # Saving the model for later use. Can be loaded using Word2Vec.load()
-    model_name = f"{num_features}features_40minwords_10context"
-    model_path = os.path.join(output, model_name)
-    model.save(model_path)
+        # Initializing the train model
+
+        print("Training model....")
+        model = word2vec.Word2Vec(sentences, \
+                                  workers=num_workers, \
+                                  size=num_features, \
+                                  min_count=min_word_count, \
+                                  window=context,
+                                  sample=downsampling)
+
+        # To make the model memory efficient
+        model.init_sims(replace=True)
+
+        # Saving the model for later use. Can be loaded using Word2Vec.load()
+        model_name = f"{num_features}features_40minwords_10context"
+        model_path = os.path.join(output, model_name)
+        model.save(model_path)
     print(model.wv.most_similar("crime"))
     print(model.wv.most_similar("beer"))
     print(model.wv.most_similar("math"))
@@ -143,26 +162,28 @@ if __name__ == '__main__':
     with open(df_path, 'wb') as f:
         pickle.dump(classes, f)
       
-    # Calculating feature vectors for training set
+    # Calculating average feature vector for training set
     clean_train_reviews = []
     train_path = os.path.join(output, f'{num_features}trainDataVec.csv')
     with open(train_path, "w") as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
-        for review in tqdm(train['text']):
+        for review in train['text']:
             clean_train_reviews=review_wordlist(review, remove_stopwords=True)
             trainDataVecs=featureVecMethod(clean_train_reviews, model, num_features)
             writer.writerow(trainDataVecs)
-    
-    # Calculating feature vectors for test set
+          
+    # Calculating average feature vector for test set
     clean_test_reviews = []
     test_path = os.path.join(output, f'{num_features}testDataVec.csv')
     with open(test_path, "w") as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
-        for review in tqdm(test['text']):
+        for review in test['text']:
             clean_test_reviews=review_wordlist(review, remove_stopwords=True)
             testDataVecs=featureVecMethod(clean_test_reviews, model, num_features)
             writer.writerow(testDataVecs)
-          
+            
+   
+    
 
     
 
