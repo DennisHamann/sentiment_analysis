@@ -21,20 +21,34 @@ import sys
 import errno
 # word2vec expects a list of lists.
 # Using punkt tokenizer for better splitting of a paragraph into sentences.
+import csv 
+from tqdm import tqdm
 nltk.download('punkt')
 nltk.download('stopwords')
 tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
-
+stops = set(stopwords.words("english"))
 
 def mkdir_p(path):
-    try:
+    if not os.path.exists(path):
         os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
 
+def data2memmap(file,mmap,no_of_reviews,maxlen):
+    mmap = os.path.join('data/features/',mmap)
+    data = np.memmap(mmap, dtype='float', mode='w+', shape=(no_of_reviews, maxlen, 80))
+    print('mmap=0')
+    print('start iterator')
+    for (idx, row) in enumerate(file):
+        review_length = len(row)
+        review_length = min(review_length,maxlen)
+        review = list()
+        print(idx)
+        for i in range(review_length-1):
+            wordtmp = row[i].replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
+            wordtmp = wordtmp.split(' ')
+            review.append(np.array(wordtmp).astype('float'))
+        review = np.array(review)
+        data[idx, (maxlen - review.shape[0]):maxlen, :] = review
+    data.flush()
 
 # This function converts a text to a sequence of words.
 def review_wordlist(review, remove_stopwords=False):
@@ -46,7 +60,6 @@ def review_wordlist(review, remove_stopwords=False):
     words = review_text.lower().split()
     # 4. Optionally remove stopwords
     if remove_stopwords:
-        stops = set(stopwords.words("english"))
         words = [w for w in words if not w in stops]
 
     return (words)
@@ -87,9 +100,9 @@ def featureVecMethod(words, model, num_features):
 def getAvgFeatureVecs(reviews, model, num_features):
     counter = 0
     listoflist = [] # Maybe as np array np.zeros((len(reviews), num_features), dtype="float32")
-    for review in reviews:
+    for review in list(reviews):
         # Printing a status message every 1000th review
-        if counter % 1000 == 0:
+        if counter % 10000 == 0:
             print("Review %d of %d" % (counter, len(reviews)))
 
         listoflist.append(featureVecMethod(review, model, num_features))
@@ -117,7 +130,7 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
     # Creating the model and setting values for the various parameters, To do: finetuning
-    num_features = 300  # Word vector dimensionality
+    num_features = 80  # Word vector dimensionality
     min_word_count = 40  # Minimum word count
     num_workers = 4  # Number of parallel threads
     context = 10  # Context window size
@@ -137,7 +150,7 @@ if __name__ == '__main__':
     model.init_sims(replace=True)
 
     # Saving the model for later use. Can be loaded using Word2Vec.load()
-    model_name = "300features_40minwords_10context"
+    model_name = f"{num_features}features_40minwords_10context"
     model_path = os.path.join(output, model_name)
     model.save(model_path)
     print(model.wv.most_similar("crime"))
@@ -146,17 +159,34 @@ if __name__ == '__main__':
     # This will give the total number of words in the vocabolary created from this dataset
     model.wv.syn0.shape
 
+    # Save Labels
+    df=pd.read_csv('data/prepared/Train.csv')
+    classes = list(df['label'])
+    df_path = os.path.join(output, f'{num_features}trainDatalabel.pickle')
+    with open(df_path, 'wb') as f:
+        pickle.dump(classes, f)
+        
+    df=pd.read_csv('data/prepared/Test.csv')
+    classes = list(df['label'])
+    df_path = os.path.join(output, f'{num_features}testDatalabel.pickle')
+    with open(df_path, 'wb') as f:
+        pickle.dump(classes, f)
+      
     # Calculating average feature vector for training set
     clean_train_reviews = []
     for review in train['text']:
         clean_train_reviews.append(review_wordlist(review, remove_stopwords=True))
 
     trainDataVecs=getAvgFeatureVecs(clean_train_reviews, model, num_features)
-    train_path = os.path.join(output, 'trainDataVec.pickle')
+    train_path = os.path.join(output, f'{num_features}trainDataVec.csv')
     print(type(trainDataVecs))
-    with open(train_path, 'wb') as f:
-     pickle.dump(trainDataVecs, f)
-        
+    counter = 0
+    with open(train_path, "w") as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+        for line in tqdm(trainDataVecs):
+                          
+            writer.writerow(line)
+          
 
     # Calculating average feature vactors for test set
     clean_test_reviews = []
@@ -164,10 +194,22 @@ if __name__ == '__main__':
         clean_test_reviews.append(review_wordlist(review, remove_stopwords=True))
 
     testDataVecs=getAvgFeatureVecs(clean_test_reviews, model, num_features)
-    test_path = os.path.join(output, 'testDataVec')
-    with open(test_path, 'wb') as f:
-        pickle.dump(testDataVecs, f)
-    
+    test_path = os.path.join(output, f'{num_features}testDataVec.csv')
+    with open(test_path, "w") as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+        for line in testDataVecs:
+            writer.writerow(line)
+
+    # initializing the memory maps
+    no_of_reviews_train = 40000
+    no_of_reviews_test = 5000
+    maxlen = 1000
+
+    print('creating memory map...')
+    trainXfile = csv.reader(open('data/features/80trainDataVec.csv', 'rt'))
+    testXfile = csv.reader(open('data/features/80testDataVec.csv', 'rt'))
+    data2memmap(trainXfile, 'trainmapX', no_of_reviews_train, maxlen)
+    data2memmap(testXfile, 'testmapX', no_of_reviews_test, maxlen)
 
 
 

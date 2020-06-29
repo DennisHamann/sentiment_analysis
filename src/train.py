@@ -27,7 +27,7 @@ def mkdir_p(path):
             raise
 
 def train_model(model,trainX,trainY,testX,testY):
-    model.fit(generator(trainX,trainY,1), nb_epoch=10, sample_per_epoch=2, verbose=1, validation_data=generator(testX,testY,1))
+    model.fit(generator(trainX,trainY,25), epochs=5, steps_per_epoch=100, verbose=1, validation_data=generator(testX,testY,25), validation_steps=50)
     return model
 
 def get_model(input_shape,output_shape):
@@ -42,38 +42,42 @@ def get_model(input_shape,output_shape):
     model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
     return model
 
-def get_data(no_of_reviews,maxlen):
-    trainX = np.memmap('features/trainmapX', dtype='float', mode='r',shape=(no_of_reviews,maxlen,10))
-    testX = np.memmap('features/testmapX', dtype='float', mode='r',shape=(no_of_reviews,maxlen,10))
+def get_data(no_of_reviews_train,no_of_reviews_test,maxlen):
+    trainX = np.memmap('data/features/trainmapX', dtype='float', mode='r',shape=(no_of_reviews_train,maxlen,80))
+    testX = np.memmap('data/features/testmapX', dtype='float', mode='r',shape=(no_of_reviews_test,maxlen,80))
 
     #does not work with pickle and might have to be changed depending on the given data
-    trainYfile = csv.reader(open('data/features/10trainDatalabel.pickle', 'rb'))
-    testYfile = csv.reader(open('data/features/10testDatalabel.pickle', 'rb'))
-    trainY = np.array(trainYfile)
-    testY = np.array(testYfile)
+    trainYfile = open('data/features/80trainDatalabel.pickle', 'rb')
+    testYfile = open('data/features/80testDatalabel.pickle', 'rb')
+    trainY = pickle.load(trainYfile)
+    testY = pickle.load(testYfile)
     return trainX, testX, trainY, testY
 
+#python src/train.py data/features data/models
 def data2memmap(file,mmap,no_of_reviews,maxlen):
-    mmap = os.path.join('features/',mmap)
-    data = np.memmap(mmap, dtype='float', mode='w+', shape=(no_of_reviews, maxlen, 10))
-    data[:] = 0.
+    mmap = os.path.join('data/features/',mmap)
+    data = np.memmap(mmap, dtype='float', mode='w+', shape=(no_of_reviews, maxlen, 80))
+    print('mmap=0')
+    print('start iterator')
     for (idx, row) in enumerate(file):
         review_length = len(row)
+        review_length = min(review_length,maxlen)
         review = list()
-        for i in range(review_length):
-            wordtmp = row[i].replace(']', '').replace('[', '')
-            wordtmp = wordtmp.split(',')
+        print(idx)
+        for i in range(review_length-1):
+            wordtmp = row[i].replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
+            wordtmp = wordtmp.split(' ')
             review.append(np.array(wordtmp).astype('float'))
         review = np.array(review)
         data[idx, (maxlen - review.shape[0]):maxlen, :] = review
     data.flush()
 
 def generator(X,Y,batch_size):
-    batchX = np.zeros((batch_size,X.shape[1],10))
+    batchX = np.zeros((batch_size,X.shape[1],80))
     batchY = np.zeros((batch_size,1))
     while True:
         for i in range(batch_size):
-            idx = random.choice(X.shape[0],1)
+            idx = random.choice(range(X.shape[0]-1))
             batchX[i,:,:] = X[idx,:,:]
             batchY[i] = Y[idx]
         yield batchX, batchY
@@ -95,23 +99,25 @@ if __name__ == '__main__':
         f.write('Output')
 
     #needs to be changed
-    no_of_reviews = 4
-    maxlen = 42
+    no_of_reviews_train = 40000
+    no_of_reviews_test = 5000
+    maxlen = 1000
 
     #initializing the memory maps
     #this might be transfered to featurization
-    trainXfile = csv.reader(open('data/features/10trainDataVec.pickle', 'rb'))
-    testXfile = csv.reader(open('data/features/10testDataVec.pickle', 'rb'))
-    data2memmap(trainXfile, 'trainmapX', no_of_reviews, maxlen)
-    data2memmap(testXfile, 'testmapX', no_of_reviews, maxlen)
+    #print('creating memory map...')
+    #trainXfile = csv.reader(open('data/features/80trainDataVec.csv', 'rt'))
+    #testXfile = csv.reader(open('data/features/80testDataVec.csv', 'rt'))
+    #data2memmap(trainXfile, 'trainmapX', no_of_reviews_train, maxlen)
+    #data2memmap(testXfile, 'testmapX', no_of_reviews_test, maxlen)
 
     #get datasets
-    print('loading data')
-    trainX, testX, trainY, testY = get_data(no_of_reviews,maxlen)
+    print('loading data...')
+    trainX, testX, trainY, testY = get_data(no_of_reviews_train,no_of_reviews_test,maxlen)
 
     #get model
     print("defining model...")
-    model = get_model((maxlen,10), 1)
+    model = get_model((maxlen,80), 1)
     #needs to be modified for memmaps
     print('training model...')
     model = train_model(model, trainX, trainY, testX, testY)
