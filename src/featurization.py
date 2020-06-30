@@ -114,14 +114,14 @@ if __name__ == '__main__':
     if path.exists(model_path):
         model = word2vec.Word2Vec.load(os.path.join(input, f"{num_features}features_model"))
     else:
+        print('Error: model not found')
+        '''
         sentences = []
         print("Parsing sentences from training set")
         for review in train["text"]:
             sentences += review_sentences(review, tokenizer)
 
-        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-
-        
+             
 
         # Initializing the train model
 
@@ -140,9 +140,7 @@ if __name__ == '__main__':
         model_name = f"{num_features}features_40minwords_10context"
         model_path = os.path.join(output, model_name)
         model.save(model_path)
-    print(model.wv.most_similar("crime"))
-    print(model.wv.most_similar("beer"))
-    print(model.wv.most_similar("math"))
+        '''
     # This will give the total number of words in the vocabolary created from this dataset
     model.wv.syn0.shape
 
@@ -167,7 +165,7 @@ if __name__ == '__main__':
     train_path = os.path.join(output, f'{num_features}trainDataVec.csv')
     with open(train_path, "w") as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
-        for review in train['text']:
+        for review in tqdm(train['text']):
             clean_train_reviews=review_wordlist(review, remove_stopwords=True)
             trainDataVecs=featureVecMethod(clean_train_reviews, model, num_features)
             writer.writerow(trainDataVecs)
@@ -177,7 +175,7 @@ if __name__ == '__main__':
     test_path = os.path.join(output, f'{num_features}testDataVec.csv')
     with open(test_path, "w") as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
-        for review in test['text']:
+        for review in tqdm(test['text']):
             clean_test_reviews=review_wordlist(review, remove_stopwords=True)
             testDataVecs=featureVecMethod(clean_test_reviews, model, num_features)
             writer.writerow(testDataVecs)

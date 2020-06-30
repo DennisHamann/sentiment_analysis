@@ -97,8 +97,7 @@ if __name__ == '__main__':
     for review in train["text"]:
         sentences += review_sentences(review, tokenizer)
 
-    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-
+   
     # Creating the model and setting values for the various parameters, To do: finetuning
     num_features = 80  # Word vector dimensionality
     min_word_count = 40  # Minimum word count
