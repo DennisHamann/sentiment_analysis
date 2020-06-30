@@ -94,6 +94,34 @@ def getAvgFeatureVecs(reviews, model, num_features):
     return listoflist
 
 
+def data2memmap(file,mmap,no_of_reviews,maxlen,vecsize):
+    mmap = os.path.join('data/features/',mmap)
+    data = np.memmap(mmap, dtype='float', mode='w+', shape=(no_of_reviews, maxlen, vecsize))
+    for (idx, row) in enumerate(file):
+        review_length = len(row)
+        review_length = min(review_length,maxlen)
+        review = list()
+        for i in range(review_length-1):
+            wordtmp = row[i].replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
+            wordtmp = wordtmp.split(' ')
+            review.append(np.array(wordtmp).astype('float'))
+        review = np.array(review)
+        data[idx, (maxlen - review.shape[0]):maxlen, :] = review
+    data.flush()
+
+
+def get_shape(file):
+    maxlen = 0
+    for (idx, row) in enumerate(file):
+        i = 0
+        for word in row:
+            i += 1
+        if i > maxlen:
+            maxlen = i
+    no_of_reviews = idx+1
+    return no_of_reviews, maxlen
+
+
 if __name__ == '__main__':
     # Read data from files
 
@@ -179,9 +207,17 @@ if __name__ == '__main__':
             clean_test_reviews=review_wordlist(review, remove_stopwords=True)
             testDataVecs=featureVecMethod(clean_test_reviews, model, num_features)
             writer.writerow(testDataVecs)
-            
-   
-    
+
+    # initializing the memory maps
+    print('creating memory map...')
+    trainXfile = csv.reader(open('data/features/80trainDataVec.csv', 'rt'))
+    testXfile = csv.reader(open('data/features/80testDataVec.csv', 'rt'))
+    no_of_reviews_train, maxlen_train = get_shape(trainXfile)
+    no_of_reviews_test, maxlen_test = get_shape(testXfile)
+    shape = np.array([maxlen_train,no_of_reviews_train,maxlen_test,no_of_reviews_test])
+    np.save('data/features/shape', shape)
+    data2memmap(trainXfile, 'trainmapX', no_of_reviews_train, maxlen_train,vecsize)
+    data2memmap(testXfile, 'testmapX', no_of_reviews_test, maxlen_test,vecsize)
 
     
 

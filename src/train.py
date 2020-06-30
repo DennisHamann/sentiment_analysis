@@ -3,15 +3,12 @@ import os
 import errno
 
 import numpy as np
-import keras
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
-from keras.datasets import imdb
-from keras.layers.embeddings import Embedding
 from keras.preprocessing import sequence
 import pickle
-#import src/featurization.py
-#import src/prepare.py
+import csv
+import random
 
 
 
@@ -24,18 +21,12 @@ def mkdir_p(path):
         else:
             raise
 
-def train_model(model,trainX,trainY,testX,testY):
-    model.fit(trainX, trainY, epochs=10, batch_size=1, verbose=1, validation_data=(testX,testY))
+def train_model(model,trainX,trainY,testX,testY,batch_size,no_of_reviews_train,no_of_reviews_test):
+    model.fit(generator(trainX,trainY,batch_size), epochs=5, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size), validation_steps=int(no_of_reviews_test/batch_size))
     return model
 
 def get_model(input_shape,output_shape):
-    #set variables --- these may change when switching to the new dataset
-    ##embedding_vector_length=32
-    #max_review_length=500
-    #top_words=5000
     model = Sequential()
-    #add embedding layer for word to vec
-    #model.add(Embedding(top_words, embedding_vector_length,input_length=max_review_length))
     #add LSTM layer
     model.add(LSTM(128,input_shape=input_shape))
     #prevent overfitting
@@ -44,12 +35,55 @@ def get_model(input_shape,output_shape):
     model.add(Dense(output_shape, activation='sigmoid'))
     #define optimizer, metric
     model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
-    #train model with given dataset
     return model
 
-#with open(output, 'w') as f:
-#    f.write('This is a trained model')
+def get_data(no_of_reviews_train,no_of_reviews_test,maxlen_train,maxlen_test,vecsize):
+    trainX = np.memmap('data/features/trainmapX', dtype='float', mode='r',shape=(no_of_reviews_train,maxlen_train,vecsize))
+    testX = np.memmap('data/features/testmapX', dtype='float', mode='r',shape=(no_of_reviews_test,maxlen_test,vecsize))
+    trainYfile = open('data/features/80trainDatalabel.pickle', 'rb')
+    testYfile = open('data/features/80testDatalabel.pickle', 'rb')
+    trainY = pickle.load(trainYfile)
+    testY = pickle.load(testYfile)
+    return trainX, testX, trainY, testY
 
+def data2memmap(file,mmap,no_of_reviews,maxlen,vecsize):
+    mmap = os.path.join('data/features/',mmap)
+    data = np.memmap(mmap, dtype='float', mode='w+', shape=(no_of_reviews, maxlen, vecsize))
+    print('mmap=0')
+    print('start iterator')
+    for (idx, row) in enumerate(file):
+        review_length = len(row)
+        review_length = min(review_length,maxlen)
+        review = list()
+        for i in range(review_length-1):
+            wordtmp = row[i].replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
+            wordtmp = wordtmp.split(' ')
+            review.append(np.array(wordtmp).astype('float'))
+        review = np.array(review)
+        data[idx, (maxlen - review.shape[0]):maxlen, :] = review
+    data.flush()
+
+def get_shape(file):
+    maxlen = 0
+    for (idx, row) in enumerate(file):
+        i = 0
+        for word in row:
+            i += 1
+        if i > maxlen:
+            maxlen = i
+    no_of_reviews = idx+1
+    return no_of_reviews, maxlen
+
+
+def generator(X,Y,batch_size):
+    batchX = np.zeros((batch_size,X.shape[1],80))
+    batchY = np.zeros((batch_size,1))
+    while True:
+        for i in range(batch_size):
+            idx = random.choice(range(X.shape[0]-1))
+            batchX[i,:,:] = X[idx,:,:]
+            batchY[i] = Y[idx]
+        yield batchX, batchY
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
@@ -63,56 +97,23 @@ if __name__ == '__main__':
     print('output path:', output)
     mkdir_p(sys.argv[2])
     writepath = os.path.join(sys.argv[2], 'model.h5')
-    mode = 'a' if os.path.exists(writepath) else 'w'
-    with open(writepath, mode) as f:
-        f.write('Output')
+    vecsize = 80
+    batch_size = 1000
+
+    [maxlen_train,no_of_reviews_train,maxlen_test,no_of_reviews_test] = np.load('data/features/shape')
+    maxlen = max(maxlen_train,maxlen_test)
 
     #get datasets
-    trainXfile = open('data/features/10trainDataVec.pickle','rb')
-    trainYfile = open('data/features/10trainDatalabel.pickle','rb')
-    testXfile  = open('data/features/10testDataVec.pickle','rb')
-    testYfile  = open('data/features/10testDatalabel.pickle','rb')
-
-    trainX = pickle.load(trainXfile)
-    trainY = pickle.load(trainYfile)
-    testX  = pickle.load(testXfile)
-    testY  = pickle.load(testYfile)
-
-    #this has do be removed once the data is complete
-
-    trainY=np.array(trainY[0:50])
-    testY=np.array(testY[0:50])
-
-    train_max_len = len(max(trainX,key=len))
-    test_max_len = len(max(testX,key=len))
-
-    max_len = max(train_max_len,test_max_len)
-
-    trainX=sequence.pad_sequences(trainX,maxlen=max_len,padding='pre',dtype="f")
-    testX=sequence.pad_sequences(testX,maxlen=max_len,padding='pre',dtype="f")
-
-
-    #top_words=5000
-    #(trainX,trainY),(testX,testY) =  imdb.load_data(num_words=top_words)
-
-
-
-    #bring datasets to the same lenght
-
-    #review_length=500
-    ##trainX=sequence.pad_sequences(trainX,maxlen=review_length)
-    #testX=sequence.pad_sequences(testX,maxlen=review_length)
+    print('loading data...')
+    trainX, testX, trainY, testY = get_data(no_of_reviews_train,no_of_reviews_test,maxlen_train,maxlen_test,vecsize)
 
     #get model
-    print("definiing model...")
-    model = get_model(trainX.shape[1:3],1)
-
-    #train model
-    print("training model...")
-    model = train_model(model,trainX,trainY,testX,testY)
+    print("defining model...")
+    model = get_model((maxlen,vecsize), 1)
+    print('training model...')
+    model = train_model(model, trainX, trainY, testX, testY,batch_size,no_of_reviews_train,no_of_reviews_test)
 
     #save model to output folder
-
     model.save(writepath)
 
 
