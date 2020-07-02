@@ -214,10 +214,11 @@ if __name__ == '__main__':
     testXfile = csv.reader(open('data/features/80testDataVec.csv', 'rt'))
     no_of_reviews_train, maxlen_train = get_shape(trainXfile)
     no_of_reviews_test, maxlen_test = get_shape(testXfile)
-    shape = np.array([maxlen_train,no_of_reviews_train,maxlen_test,no_of_reviews_test])
+    maxlen=max(maxlen_test,maxlen_train)
+    shape = np.array([maxlen,no_of_reviews_train,no_of_reviews_test,model.vector_size])
     np.save('data/features/shape', shape)
-    data2memmap(trainXfile, 'trainmapX', no_of_reviews_train, maxlen_train,vecsize)
-    data2memmap(testXfile, 'testmapX', no_of_reviews_test, maxlen_test,vecsize)
+    data2memmap(trainXfile, 'trainmapX', no_of_reviews_train, maxlen,model.vector_size)
+    data2memmap(testXfile, 'testmapX', no_of_reviews_test, maxlen,model.vector_size)
 
     
 

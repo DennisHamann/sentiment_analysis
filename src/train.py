@@ -21,25 +21,25 @@ def mkdir_p(path):
         else:
             raise
 
-def train_model(model,trainX,trainY,testX,testY,batch_size,no_of_reviews_train,no_of_reviews_test):
-    model.fit(generator(trainX,trainY,batch_size), epochs=5, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size), validation_steps=int(no_of_reviews_test/batch_size))
+def train_model(model,trainX,trainY,testX,testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize):
+    model.fit(generator(trainX,trainY,batch_size,vecsize,no_of_reviews_train,maxlen), epochs=5, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size,vecsize,no_of_reviews_test,maxlen), validation_steps=int(no_of_reviews_train/batch_size))
     return model
 
 def get_model(input_shape,output_shape):
     model = Sequential()
     #add LSTM layer
-    model.add(LSTM(128,input_shape=input_shape))
+    model.add(LSTM(256,input_shape=input_shape))
     #prevent overfitting
-    model.add(Dropout(0.9))
+    model.add(Dropout(0.1))
     #binary output - maybo more?
     model.add(Dense(output_shape, activation='sigmoid'))
     #define optimizer, metric
     model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
     return model
 
-def get_data(no_of_reviews_train,no_of_reviews_test,maxlen_train,maxlen_test,vecsize):
-    trainX = np.memmap('data/features/trainmapX', dtype='float', mode='r',shape=(no_of_reviews_train,maxlen_train,vecsize))
-    testX = np.memmap('data/features/testmapX', dtype='float', mode='r',shape=(no_of_reviews_test,maxlen_test,vecsize))
+def get_data(no_of_reviews_train,no_of_reviews_test,maxlen,vecsize):
+    trainX = np.memmap('data/features/trainmapX', dtype='float', mode='r',shape=(no_of_reviews_train,maxlen,vecsize))
+    testX = np.memmap('data/features/testmapX', dtype='float', mode='r',shape=(no_of_reviews_test,maxlen,vecsize))
     trainYfile = open('data/features/80trainDatalabel.pickle', 'rb')
     testYfile = open('data/features/80testDatalabel.pickle', 'rb')
     trainY = pickle.load(trainYfile)
@@ -75,15 +75,17 @@ def get_shape(file):
     return no_of_reviews, maxlen
 
 
-def generator(X,Y,batch_size):
-    batchX = np.zeros((batch_size,X.shape[1],80))
-    batchY = np.zeros((batch_size,1))
+def generator(X,Y,batch_size,vecsize,no_of_reviews,maxlen):
+    batchX = np.zeros((batch_size,maxlen,vecsize))
+    batchY = np.zeros((batch_size))
+    index=np.array(range(no_of_reviews-1))
+    random.shuffle(index)
+    Y=np.array(Y)
     while True:
-        for i in range(batch_size):
-            idx = random.choice(range(X.shape[0]-1))
-            batchX[i,:,:] = X[idx,:,:]
-            batchY[i] = Y[idx]
-        yield batchX, batchY
+        for i in range(int((no_of_reviews-1)/batch_size)):
+            batchX[:,:,:] = X[index[i*batch_size:(i+1)*batch_size],:,:]
+            batchY[:] = Y[index[i*batch_size:(i+1)*batch_size]]
+            yield batchX, batchY
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
@@ -97,23 +99,27 @@ if __name__ == '__main__':
     print('output path:', output)
     mkdir_p(sys.argv[2])
     writepath = os.path.join(sys.argv[2], 'model.h5')
-    vecsize = 80
-    batch_size = 1000
+    batch_size = 400
 
-    [maxlen_train,no_of_reviews_train,maxlen_test,no_of_reviews_test] = np.load('data/features/shape')
-    maxlen = max(maxlen_train,maxlen_test)
+    [maxlen,no_of_reviews_train,no_of_reviews_test,vecsize] = np.load('data/features/shape.npy')
+
 
     #get datasets
     print('loading data...')
-    trainX, testX, trainY, testY = get_data(no_of_reviews_train,no_of_reviews_test,maxlen_train,maxlen_test,vecsize)
+    trainX, testX, trainY, testY = get_data(no_of_reviews_train,no_of_reviews_test,maxlen,vecsize)
 
     #get model
     print("defining model...")
     model = get_model((maxlen,vecsize), 1)
     print('training model...')
-    model = train_model(model, trainX, trainY, testX, testY,batch_size,no_of_reviews_train,no_of_reviews_test)
+    model = train_model(model, trainX, trainY, testX, testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize)
 
     #save model to output folder
     model.save(writepath)
 
 
+# python3 src/prepare.py data/dataset data/prepared
+# python3 src/featurization.py data/prepared data/features
+#python src/train.py data/features data/models
+#
+#
