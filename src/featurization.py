@@ -94,8 +94,8 @@ def getAvgFeatureVecs(reviews, model, num_features):
     return listoflist
 
 
-def data2memmap(file,mmap,no_of_reviews,maxlen,vecsize):
-    mmap = os.path.join('data/features/',mmap)
+def data2memmap(file,mmap,no_of_reviews,maxlen,vecsize,path):
+    mmap = os.path.join(path,f'{vecsize}{mmap}')
     data = np.memmap(mmap, dtype='float', mode='w+', shape=(no_of_reviews, maxlen, vecsize))
     for (idx, row) in enumerate(file):
         review_length = len(row)
@@ -210,15 +210,17 @@ if __name__ == '__main__':
 
     # initializing the memory maps
     print('creating memory map...')
-    trainXfile = csv.reader(open('data/features/80trainDataVec.csv', 'rt'))
-    testXfile = csv.reader(open('data/features/80testDataVec.csv', 'rt'))
+    vecsize = model.vector_size
+    trainXfile = csv.reader(open(train_path, 'rt'))
+    testXfile = csv.reader(open(test_path, 'rt'))
     no_of_reviews_train, maxlen_train = get_shape(trainXfile)
     no_of_reviews_test, maxlen_test = get_shape(testXfile)
-    maxlen=max(maxlen_test,maxlen_train)
-    shape = np.array([maxlen,no_of_reviews_train,no_of_reviews_test,model.vector_size])
-    np.save('data/features/shape', shape)
-    data2memmap(trainXfile, 'trainmapX', no_of_reviews_train, maxlen,model.vector_size)
-    data2memmap(testXfile, 'testmapX', no_of_reviews_test, maxlen,model.vector_size)
+    maxlen = max(maxlen_test,maxlen_train)
+    shape = np.array([maxlen,no_of_reviews_train,no_of_reviews_test,vecsize])
+    shape_path = os.path.join(output, 'shape')
+    np.save(shape_path, shape)
+    data2memmap(trainXfile, 'trainmapX', no_of_reviews_train, maxlen,vecsize,output)
+    data2memmap(testXfile, 'testmapX', no_of_reviews_test, maxlen,vecsize,output)
 
     
 
