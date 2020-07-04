@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
    
     # Creating the model and setting values for the various parameters, To do: finetuning
-    num_features = 80  # Word vector dimensionality
+    num_features = 2  # Word vector dimensionality
     min_word_count = 40  # Minimum word count
     num_workers = 4  # Number of parallel threads
     context = 10  # Context window size
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     model.init_sims(replace=True)
 
     # Saving the model for later use. Can be loaded using Word2Vec.load()
-    model_name = f"{num_features}features_model"
+    model_name = "features_model"
     model_path = os.path.join(output, model_name)
     model.save(model_path)
 
