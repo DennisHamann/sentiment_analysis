@@ -3,15 +3,12 @@ import os
 import errno
 
 import numpy as np
-import keras
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
-from keras.datasets import imdb
-from keras.layers.embeddings import Embedding
 from keras.preprocessing import sequence
 import pickle
-#import src/featurization.py
-#import src/prepare.py
+import csv
+import random
 
 
 
@@ -24,32 +21,46 @@ def mkdir_p(path):
         else:
             raise
 
-def train_model(model,trainX,trainY,testX,testY):
-    model.fit(trainX, trainY, epochs=10, batch_size=1, verbose=1, validation_data=(testX,testY))
+def train_model(model,trainX,trainY,testX,testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize):
+    model.fit(generator(trainX,trainY,batch_size,vecsize,no_of_reviews_train,maxlen), epochs=5, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size,vecsize,no_of_reviews_test,maxlen), validation_steps=int(no_of_reviews_train/batch_size))
     return model
 
 def get_model(input_shape,output_shape):
-    #set variables --- these may change when switching to the new dataset
-    ##embedding_vector_length=32
-    #max_review_length=500
-    #top_words=5000
     model = Sequential()
-    #add embedding layer for word to vec
-    #model.add(Embedding(top_words, embedding_vector_length,input_length=max_review_length))
     #add LSTM layer
-    model.add(LSTM(128,input_shape=input_shape))
+    model.add(LSTM(256,input_shape=input_shape))
     #prevent overfitting
-    model.add(Dropout(0.9))
+    model.add(Dropout(0.1))
     #binary output - maybo more?
     model.add(Dense(output_shape, activation='sigmoid'))
     #define optimizer, metric
     model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
-    #train model with given dataset
     return model
 
-#with open(output, 'w') as f:
-#    f.write('This is a trained model')
+def get_data(no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,input):
+    test_vec_path = os.path.join(input, 'testmapX')
+    train_vec_path = os.path.join(input, 'trainmapX')
+    test_label_path = os.path.join(input, 'testDatalabel.pickle')
+    train_label_path = os.path.join(input, 'trainDatalabel.pickle')
+    trainX = np.memmap(train_vec_path, dtype='float', mode='r',shape=(no_of_reviews_train,maxlen,vecsize))
+    testX = np.memmap(test_vec_path, dtype='float', mode='r',shape=(no_of_reviews_test,maxlen,vecsize))
+    trainYfile = open(train_label_path, 'rb')
+    testYfile = open(test_label_path, 'rb')
+    trainY = pickle.load(trainYfile)
+    testY = pickle.load(testYfile)
+    return trainX, testX, trainY, testY
 
+def generator(X,Y,batch_size,vecsize,no_of_reviews,maxlen):
+    batchX = np.zeros((batch_size,maxlen,vecsize))
+    batchY = np.zeros((batch_size))
+    index = np.array(range(no_of_reviews - 1))
+    Y=np.array(Y)
+    while True:
+        random.shuffle(index)
+        for i in range(int((no_of_reviews-1)/batch_size)):
+            batchX[:,:,:] = X[index[i*batch_size:(i+1)*batch_size],:,:]
+            batchY[:] = Y[index[i*batch_size:(i+1)*batch_size]]
+            yield batchX, batchY
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
@@ -61,58 +72,28 @@ if __name__ == '__main__':
 
     print('data path:', input)
     print('output path:', output)
-    mkdir_p(sys.argv[2])
-    writepath = os.path.join(sys.argv[2], 'model.h5')
-    mode = 'a' if os.path.exists(writepath) else 'w'
-    with open(writepath, mode) as f:
-        f.write('Output')
+    mkdir_p(output)
+    writepath = os.path.join(output, 'model.h5')
+    batch_size = 400
+    shape_path = os.path.join(input,'shape.npy')
+    [maxlen,no_of_reviews_train,no_of_reviews_test,vecsize] = np.load(shape_path)
 
     #get datasets
-    trainXfile = open('data/features/10trainDataVec.pickle','rb')
-    trainYfile = open('data/features/10trainDatalabel.pickle','rb')
-    testXfile  = open('data/features/10testDataVec.pickle','rb')
-    testYfile  = open('data/features/10testDatalabel.pickle','rb')
-
-    trainX = pickle.load(trainXfile)
-    trainY = pickle.load(trainYfile)
-    testX  = pickle.load(testXfile)
-    testY  = pickle.load(testYfile)
-
-    #this has do be removed once the data is complete
-
-    trainY=np.array(trainY[0:50])
-    testY=np.array(testY[0:50])
-
-    train_max_len = len(max(trainX,key=len))
-    test_max_len = len(max(testX,key=len))
-
-    max_len = max(train_max_len,test_max_len)
-
-    trainX=sequence.pad_sequences(trainX,maxlen=max_len,padding='pre',dtype="f")
-    testX=sequence.pad_sequences(testX,maxlen=max_len,padding='pre',dtype="f")
-
-
-    #top_words=5000
-    #(trainX,trainY),(testX,testY) =  imdb.load_data(num_words=top_words)
-
-
-
-    #bring datasets to the same lenght
-
-    #review_length=500
-    ##trainX=sequence.pad_sequences(trainX,maxlen=review_length)
-    #testX=sequence.pad_sequences(testX,maxlen=review_length)
+    print('loading data...')
+    trainX, testX, trainY, testY = get_data(no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,input)
 
     #get model
-    print("definiing model...")
-    model = get_model(trainX.shape[1:3],1)
-
-    #train model
-    print("training model...")
-    model = train_model(model,trainX,trainY,testX,testY)
+    print("defining model...")
+    model = get_model((maxlen,vecsize), 1)
+    print('training model...')
+    model = train_model(model, trainX, trainY, testX, testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize)
 
     #save model to output folder
-
     model.save(writepath)
 
 
+# python3 src/prepare.py data/dataset data/prepared
+# python3 src/featurization.py data/prepared data/features
+#python src/train.py data/features data/models
+#
+#
