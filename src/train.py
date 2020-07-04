@@ -38,10 +38,10 @@ def get_model(input_shape,output_shape):
     return model
 
 def get_data(no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,input):
-    test_vec_path = os.path.join(input, f'{vecsize}testmapX')
-    train_vec_path = os.path.join(input, f'{vecsize}trainmapX')
-    test_label_path = os.path.join(input, f'{vecsize}testDatalabel.pickle')
-    train_label_path = os.path.join(input, f'{vecsize}trainDatalabel.pickle')
+    test_vec_path = os.path.join(input, 'testmapX')
+    train_vec_path = os.path.join(input, 'trainmapX')
+    test_label_path = os.path.join(input, 'testDatalabel.pickle')
+    train_label_path = os.path.join(input, 'trainDatalabel.pickle')
     trainX = np.memmap(train_vec_path, dtype='float', mode='r',shape=(no_of_reviews_train,maxlen,vecsize))
     testX = np.memmap(test_vec_path, dtype='float', mode='r',shape=(no_of_reviews_test,maxlen,vecsize))
     trainYfile = open(train_label_path, 'rb')
@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
     print('data path:', input)
     print('output path:', output)
-    mkdir_p(sys.argv[2])
+    mkdir_p(output)
     writepath = os.path.join(output, 'model.h5')
     batch_size = 400
     shape_path = os.path.join(input,'shape.npy')

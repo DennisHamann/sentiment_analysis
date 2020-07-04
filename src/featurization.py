@@ -95,7 +95,7 @@ def getAvgFeatureVecs(reviews, model, num_features):
 
 
 def data2memmap(file,mmap,no_of_reviews,maxlen,vecsize,path):
-    mmap = os.path.join(path,f'{vecsize}{mmap}')
+    mmap = os.path.join(path,mmap)
     data = np.memmap(mmap, dtype='float', mode='w+', shape=(no_of_reviews, maxlen, vecsize))
     for (idx, row) in enumerate(file):
         review_length = len(row)
