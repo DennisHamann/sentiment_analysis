@@ -1,7 +1,7 @@
-md5: 54c6b6472814e5841bebc3b996697fb0
+md5: df4670b7f1dac97b64db21ab4d3b93fe
 outs:
 - md5: aad99da5a75b355a86f9ff4eea3c6a25
-  path: testset.zip
+  path: imdb_testset.zip
   cache: true
   metric: false
   persist: false
