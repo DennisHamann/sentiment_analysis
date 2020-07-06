@@ -94,19 +94,21 @@ def getAvgFeatureVecs(reviews, model, num_features):
     return listoflist
 
 
-def data2memmap(file,mmap,no_of_reviews,maxlen,num_features,path):
-    mmap = os.path.join(path,mmap)
+def data2memmap(path,mmap,no_of_reviews,maxlen,num_features,output):
+    file = csv.reader(open(path, 'rt'))
+    mmap = os.path.join(output,mmap)
     data = np.memmap(mmap, dtype='float', mode='w+', shape=(no_of_reviews, maxlen, num_features))
     for (idx, row) in enumerate(file):
         review_length = len(row)
         review_length = min(review_length,maxlen)
         review = list()
+        print(idx)
         for i in range(review_length-1):
             wordtmp = row[i].replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
             wordtmp = wordtmp.split(' ')
             review.append(np.array(wordtmp).astype('float'))
         review = np.array(review)
-        data[idx, (maxlen - review.shape[0]):maxlen, :] = review
+        data[idx, (maxlen - review.shape[0]-1):maxlen-1, :] = review
     data.flush()
 
 
@@ -169,7 +171,7 @@ if __name__ == '__main__':
         model_path = os.path.join(output, model_name)
         model.save(model_path)
         '''
-    # This will give the total number of words in the vocabolary created from this dataset
+    # This will give the total number of words in the vocabulary created from this dataset
     model.wv.syn0.shape
 
     # Converting Index2Word which is a list to a set for better speed in the execution.
@@ -218,10 +220,5 @@ if __name__ == '__main__':
     shape = np.array([maxlen,no_of_reviews_train,no_of_reviews_test,num_features])
     shape_path = os.path.join(output, 'shape')
     np.save(shape_path, shape)
-    data2memmap(trainXfile, 'trainmapX', no_of_reviews_train, maxlen,num_features,output)
-    data2memmap(testXfile, 'testmapX', no_of_reviews_test, maxlen,num_features,output)
-
-    
-
-
-
+    data2memmap(train_path, 'trainmapX', no_of_reviews_train, maxlen, num_features, output)
+    data2memmap(test_path, 'testmapX', no_of_reviews_test, maxlen, num_features, output)
