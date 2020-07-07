@@ -9,6 +9,7 @@ import zipfile
 import logging
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 # BeautifulSoup is used to remove html tags from the text
 from bs4 import BeautifulSoup
 import re  # For regular expressions
@@ -64,7 +65,7 @@ def review_sentences(review, tokenizer, remove_stopwords=False):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4 and len(sys.argv) != 5:
         sys.stderr.write('Arguments error. Usage:\n')
         sys.stderr.write('\tpython prepare.py data\n')
         sys.exit(1)
@@ -75,26 +76,43 @@ if __name__ == '__main__':
 
     input = sys.argv[1]
     output = sys.argv[2]
-
-    input_train = os.path.join(input, 'trainset.zip')
-    input_test = os.path.join(input, 'testset.zip')
-    print(input_train, input_test)
+    name = sys.argv[3]
+    if len(sys.argv) == 5:
+        name2 = sys.argv[4]        
+        input_train = os.path.join(input, name)
+        input_test = os.path.join(input, name2)
+        print(input_train, input_test)
     
-    zf = zipfile.ZipFile(input_train, 'r')
-    zf.extractall(output)
-    zf.close()
-    zf = zipfile.ZipFile(input_test, 'r')
-    zf.extractall(output)
-    zf.close()
+        zf = zipfile.ZipFile(input_train, 'r')
+        zf.extractall(output)
+        zf.close()
+        zf = zipfile.ZipFile(input_test, 'r')
+        zf.extractall(output)
+        zf.close()
     
-    path_train = os.path.join(output, 'Train.csv')
-    path_test = os.path.join(output, 'Test.csv')
-    train = pd.read_csv('data/prepared/Train.csv')
-    test = pd.read_csv('data/prepared/Test.csv')
+        path_train = os.path.join(output, 'Train.csv')
+        path_test = os.path.join(output, 'Test.csv')
+        train = pd.read_csv('data/prepared/Train.csv')
+        test = pd.read_csv('data/prepared/Test.csv')
+    if len(sys.argv) == 4:    
+        input_set = os.path.join(input, name)
+        print(input_set)
+    
+        zf = zipfile.ZipFile(input_set, 'r')
+        zf.extractall(output)
+        zf.close()  
+        df = pd.read_csv('data/prepared/dataset.csv')
+        train, test = train_test_split(df, test_size=split)  
+        path_train = os.path.join(output, 'Train.csv')
+        path_test = os.path.join(output, 'Test.csv')
+        train.to_csv(path_train)   
+        test.to_csv(path_test)   
+        train = pd.read_csv('data/prepared/Train.csv')
+        test = pd.read_csv('data/prepared/Test.csv')
     
     sentences = []
     print("Parsing sentences from training set")
-    for review in train["text"]:
+    for review in train["Text"]:
         sentences += review_sentences(review, tokenizer)
 
    
