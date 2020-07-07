@@ -5,9 +5,7 @@ import errno
 import numpy as np
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
-from keras.preprocessing import sequence
 import pickle
-import csv
 import random
 
 
@@ -22,19 +20,19 @@ def mkdir_p(path):
             raise
 
 def train_model(model,trainX,trainY,testX,testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize):
-    model.fit(generator(trainX,trainY,batch_size,vecsize,no_of_reviews_train,maxlen), epochs=5, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size,vecsize,no_of_reviews_test,maxlen), validation_steps=int(no_of_reviews_train/batch_size))
+    model.fit(generator(trainX,trainY,batch_size,vecsize,no_of_reviews_train,maxlen), epochs=3, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size,vecsize,no_of_reviews_test,maxlen), validation_steps=int(no_of_reviews_train/batch_size))
     return model
 
-def get_model(input_shape,output_shape):
+def get_model(input_shape,output_shape,loss):
     model = Sequential()
     #add LSTM layer
-    model.add(LSTM(256,input_shape=input_shape))
+    model.add(LSTM(8,input_shape=input_shape))
     #prevent overfitting
     model.add(Dropout(0.1))
     #binary output - maybo more?
     model.add(Dense(output_shape, activation='sigmoid'))
     #define optimizer, metric
-    model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
+    model.compile('adam',loss,metrics=['accuracy'])
     return model
 
 def get_data(no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,input):
@@ -62,6 +60,7 @@ def generator(X,Y,batch_size,vecsize,no_of_reviews,maxlen):
             batchY[:] = Y[index[i*batch_size:(i+1)*batch_size]]
             yield batchX, batchY
 
+
 if __name__ == '__main__':
     if len(sys.argv) != 3:
         sys.stderr.write('Arguments error. Usage:\n')
@@ -74,17 +73,30 @@ if __name__ == '__main__':
     print('output path:', output)
     mkdir_p(output)
     writepath = os.path.join(output, 'model.h5')
-    batch_size = 400
     shape_path = os.path.join(input,'shape.npy')
+
+    #load shape of memory maps
     [maxlen,no_of_reviews_train,no_of_reviews_test,vecsize] = np.load(shape_path)
 
     #get datasets
     print('loading data...')
     trainX, testX, trainY, testY = get_data(no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,input)
 
+    #determine number of label classes
+    lensetY=len(set(testY))
+
+    #set loss function with respect to label classes
+    if lensetY == 2:
+        loss='binary_crossentropy'
+    else:
+        loss='SparseCategoricalCrossentropy'
+
     #get model
     print("defining model...")
-    model = get_model((maxlen,vecsize), 1)
+    model = get_model((maxlen,vecsize), lensetY-1,loss)
+
+    #training model
+    batch_size = 100
     print('training model...')
     model = train_model(model, trainX, trainY, testX, testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize)
 
@@ -94,6 +106,6 @@ if __name__ == '__main__':
 
 # python3 src/prepare.py data/dataset data/prepared
 # python3 src/featurization.py data/prepared data/features
-#python src/train.py data/features data/models
-#
-#
+# python src/train.py data/features data/models
+
+

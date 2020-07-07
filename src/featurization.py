@@ -48,22 +48,6 @@ def review_wordlist(review, remove_stopwords=False):
 
     return (words)
 
-
-# This function splits a review into sentences
-def review_sentences(review, tokenizer, remove_stopwords=False):
-    # 1. Using nltk tokenizer
-    raw_sentences = tokenizer.tokenize(review.strip())
-    sentences = []
-    # 2. Loop for each sentence
-    for raw_sentence in raw_sentences:
-        if len(raw_sentence) > 0:
-            sentences.append(review_wordlist(raw_sentence, \
-                                             remove_stopwords))
-
-    # This returns the list of lists
-    return sentences
-
-
 # Function to average all word vectors in a paragraph
 def featureVecMethod(words, model, num_features):
     # Pre-initialising empty numpy array for speed
@@ -79,21 +63,7 @@ def featureVecMethod(words, model, num_features):
 
     return list
 
-
-def getAvgFeatureVecs(reviews, model, num_features):
-    counter = 0
-    listoflist = [] # Maybe as np array np.zeros((len(reviews), num_features), dtype="float32")
-    for review in list(reviews):
-        # Printing a status message every 1000th review
-        if counter % 10000 == 0:
-            print("Review %d of %d" % (counter, len(reviews)))
-
-        listoflist.append(featureVecMethod(review, model, num_features))
-        counter = counter + 1
-
-    return listoflist
-
-
+#Function write data into memmory maps
 def data2memmap(path,mmap,no_of_reviews,maxlen,num_features,output):
     file = csv.reader(open(path, 'rt'))
     mmap = os.path.join(output,mmap)
@@ -111,7 +81,7 @@ def data2memmap(path,mmap,no_of_reviews,maxlen,num_features,output):
         data[idx, (maxlen - review.shape[0]-1):maxlen-1, :] = review
     data.flush()
 
-
+#retuns shape of the input file
 def get_shape(file):
     maxlen = 0
     for (idx, row) in enumerate(file):
@@ -145,32 +115,7 @@ if __name__ == '__main__':
         num_features = model.vector_size
     else:
         print('Error: model not found')
-        '''
-        sentences = []
-        print("Parsing sentences from training set")
-        for review in train["text"]:
-            sentences += review_sentences(review, tokenizer)
 
-             
-
-        # Initializing the train model
-
-        print("Training model....")
-        model = word2vec.Word2Vec(sentences, \
-                                  workers=num_workers, \
-                                  size=num_features, \
-                                  min_count=min_word_count, \
-                                  window=context,
-                                  sample=downsampling)
-
-        # To make the model memory efficient
-        model.init_sims(replace=True)
-
-        # Saving the model for later use. Can be loaded using Word2Vec.load()
-        model_name = "features_40minwords_10context"
-        model_path = os.path.join(output, model_name)
-        model.save(model_path)
-        '''
     # This will give the total number of words in the vocabulary created from this dataset
     model.wv.syn0.shape
 
