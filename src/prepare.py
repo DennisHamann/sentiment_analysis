@@ -136,7 +136,7 @@ if __name__ == '__main__':
     model.init_sims(replace=True)
 
     # Saving the model for later use. Can be loaded using Word2Vec.load()
-    model_name = f"{num_features}features_model"
+    model_name = "w2v_model"
     model_path = os.path.join(output, model_name)
     model.save(model_path)
 

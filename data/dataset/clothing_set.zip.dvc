@@ -1,7 +1,0 @@
-md5: 17ff01e70ebb1e741c3a91307f060410
-outs:
-- md5: e17f2d026122dc826e804569045e48b2
-  path: clothing_set.zip
-  cache: true
-  metric: false
-  persist: false

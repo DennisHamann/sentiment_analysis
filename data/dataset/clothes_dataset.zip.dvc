@@ -1,7 +1,0 @@
-md5: 8ecfe5f9f12927403d47556212c51c22
-outs:
-- md5: d7374f82539edd61d1add5d8ec5d6dab
-  path: clothes_dataset.zip
-  cache: true
-  metric: false
-  persist: false
