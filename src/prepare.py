@@ -108,12 +108,10 @@ if __name__ == '__main__':
         path_test = os.path.join(output, 'Test.csv')
         train.to_csv(path_train)   
         test.to_csv(path_test)   
-        train = pd.read_csv('data/prepared/Train.csv')
-        test = pd.read_csv('data/prepared/Test.csv')
-    
+        
     sentences = []
     print("Parsing sentences from training set")
-    for review in train["Text"]:
+    for review in train["text"]:
         sentences += review_sentences(review, tokenizer)
 
    
