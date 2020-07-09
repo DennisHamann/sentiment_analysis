@@ -48,22 +48,6 @@ def review_wordlist(review, remove_stopwords=False):
 
     return (words)
 
-
-# This function splits a review into sentences
-def review_sentences(review, tokenizer, remove_stopwords=False):
-    # 1. Using nltk tokenizer
-    raw_sentences = tokenizer.tokenize(review.strip())
-    sentences = []
-    # 2. Loop for each sentence
-    for raw_sentence in raw_sentences:
-        if len(raw_sentence) > 0:
-            sentences.append(review_wordlist(raw_sentence, \
-                                             remove_stopwords))
-
-    # This returns the list of lists
-    return sentences
-
-
 # Function to average all word vectors in a paragraph
 def featureVecMethod(words, model, num_features):
     # Pre-initialising empty numpy array for speed
@@ -79,37 +63,25 @@ def featureVecMethod(words, model, num_features):
 
     return list
 
-
-def getAvgFeatureVecs(reviews, model, num_features):
-    counter = 0
-    listoflist = [] # Maybe as np array np.zeros((len(reviews), num_features), dtype="float32")
-    for review in list(reviews):
-        # Printing a status message every 1000th review
-        if counter % 10000 == 0:
-            print("Review %d of %d" % (counter, len(reviews)))
-
-        listoflist.append(featureVecMethod(review, model, num_features))
-        counter = counter + 1
-
-    return listoflist
-
-
-def data2memmap(file,mmap,no_of_reviews,maxlen,num_features,path):
-    mmap = os.path.join(path,mmap)
+#Function write data into memmory maps
+def data2memmap(path,mmap,no_of_reviews,maxlen,num_features,output):
+    file = csv.reader(open(path, 'rt'))
+    mmap = os.path.join(output,mmap)
     data = np.memmap(mmap, dtype='float', mode='w+', shape=(no_of_reviews, maxlen, num_features))
     for (idx, row) in enumerate(file):
         review_length = len(row)
         review_length = min(review_length,maxlen)
         review = list()
+        print(idx)
         for i in range(review_length-1):
             wordtmp = row[i].replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
             wordtmp = wordtmp.split(' ')
             review.append(np.array(wordtmp).astype('float'))
         review = np.array(review)
-        data[idx, (maxlen - review.shape[0]):maxlen, :] = review
+        data[idx, (maxlen - review.shape[0]-1):maxlen-1, :] = review
     data.flush()
 
-
+#retuns shape of the input file
 def get_shape(file):
     maxlen = 0
     for (idx, row) in enumerate(file):
@@ -143,33 +115,8 @@ if __name__ == '__main__':
         num_features = model.vector_size
     else:
         print('Error: model not found')
-        '''
-        sentences = []
-        print("Parsing sentences from training set")
-        for review in train["text"]:
-            sentences += review_sentences(review, tokenizer)
 
-             
-
-        # Initializing the train model
-
-        print("Training model....")
-        model = word2vec.Word2Vec(sentences, \
-                                  workers=num_workers, \
-                                  size=num_features, \
-                                  min_count=min_word_count, \
-                                  window=context,
-                                  sample=downsampling)
-
-        # To make the model memory efficient
-        model.init_sims(replace=True)
-
-        # Saving the model for later use. Can be loaded using Word2Vec.load()
-        model_name = "features_40minwords_10context"
-        model_path = os.path.join(output, model_name)
-        model.save(model_path)
-        '''
-    # This will give the total number of words in the vocabolary created from this dataset
+    # This will give the total number of words in the vocabulary created from this dataset
     model.wv.syn0.shape
 
     # Converting Index2Word which is a list to a set for better speed in the execution.
@@ -218,10 +165,5 @@ if __name__ == '__main__':
     shape = np.array([maxlen,no_of_reviews_train,no_of_reviews_test,num_features])
     shape_path = os.path.join(output, 'shape')
     np.save(shape_path, shape)
-    data2memmap(trainXfile, 'trainmapX', no_of_reviews_train, maxlen,num_features,output)
-    data2memmap(testXfile, 'testmapX', no_of_reviews_test, maxlen,num_features,output)
-
-    
-
-
-
+    data2memmap(train_path, 'trainmapX', no_of_reviews_train, maxlen, num_features, output)
+    data2memmap(test_path, 'testmapX', no_of_reviews_test, maxlen, num_features, output)
