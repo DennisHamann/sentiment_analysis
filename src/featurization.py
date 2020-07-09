@@ -73,12 +73,17 @@ def data2memmap(path,mmap,no_of_reviews,maxlen,num_features,output):
         review_length = min(review_length,maxlen)
         review = list()
         print(idx)
-        for i in range(review_length-1):
-            wordtmp = row[i].replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
-            wordtmp = wordtmp.split(' ')
-            review.append(np.array(wordtmp).astype('float'))
+        if review_length == 1:
+           wordtmp = row[0].replace('        ', ' ').replace('       ', ' ').replace('      ', ' ').replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
+           wordtmp = wordtmp.split(' ')
+           review.append(np.array(wordtmp).astype('float'))
+        if review_length > 1:
+            for i in range(review_length-1):
+                wordtmp = row[i].replace('        ', ' ').replace('       ', ' ').replace('      ', ' ').replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
+                wordtmp = wordtmp.split(' ')
+                review.append(np.array(wordtmp).astype('float'))
         review = np.array(review)
-        data[idx, (maxlen - review.shape[0]-1):maxlen-1, :] = review
+        data[idx, (maxlen - review.shape[0]):maxlen, :] = review
     data.flush()
 
 #retuns shape of the input file
@@ -96,74 +101,121 @@ def get_shape(file):
 
 if __name__ == '__main__':
     # Read data from files
-
     input = sys.argv[1]
     output = sys.argv[2]
-    mkdir_p(sys.argv[2])
-    path_train = os.path.join(input, 'Train.csv')
-    path_test = os.path.join(input, 'Test.csv')
-    train = pd.read_csv('data/prepared/Train.csv')
-    test = pd.read_csv('data/prepared/Test.csv')
-    # Creating the model and setting values for the various parameters, To do: finetuning
+
     min_word_count = 40  # Minimum word count
     num_workers = 4  # Number of parallel threads
     context = 10  # Context window size
     downsampling = 1e-3  # (0.001) Downsample setting for frequent words
     model_path = os.path.join(input, "features_model")
+
     if path.exists(model_path):
         model = word2vec.Word2Vec.load(os.path.join(input, "features_model"))
         num_features = model.vector_size
     else:
         print('Error: model not found')
 
-    # This will give the total number of words in the vocabulary created from this dataset
-    model.wv.syn0.shape
+    if sys.argv[3] == 'evaluation':
+        print('Running evaluation featurization...')
+        path_eval = os.path.join(input, 'Evaluation.csv')
+        eval = pd.read_csv(path_eval)
 
-    # Converting Index2Word which is a list to a set for better speed in the execution.
-    index2word_set = set(model.wv.index2word)
+        model.wv.syn0.shape
 
-    # Save Labels
-    df=pd.read_csv('data/prepared/Train.csv')
-    classes = list(df['label'])
-    df_path = os.path.join(output, 'trainDatalabel.pickle')
-    with open(df_path, 'wb') as f:
-        pickle.dump(classes, f)
-        
-    df=pd.read_csv('data/prepared/Test.csv')
-    classes = list(df['label'])
-    df_path = os.path.join(output, 'testDatalabel.pickle')
-    with open(df_path, 'wb') as f:
-        pickle.dump(classes, f)
-      
-    # Calculating average feature vector for training set
-    clean_train_reviews = []
-    train_path = os.path.join(output, 'trainDataVec.csv')
-    with open(train_path, "w") as csv_file:
-        writer = csv.writer(csv_file, delimiter=',')
-        for review in tqdm(train['text']):
-            clean_train_reviews=review_wordlist(review, remove_stopwords=True)
-            trainDataVecs=featureVecMethod(clean_train_reviews, model, num_features)
-            writer.writerow(trainDataVecs)
-          
-    # Calculating average feature vector for test set
-    clean_test_reviews = []
-    test_path = os.path.join(output, 'testDataVec.csv')
-    with open(test_path, "w") as csv_file:
-        writer = csv.writer(csv_file, delimiter=',')
-        for review in tqdm(test['text']):
-            clean_test_reviews=review_wordlist(review, remove_stopwords=True)
-            testDataVecs=featureVecMethod(clean_test_reviews, model, num_features)
-            writer.writerow(testDataVecs)
+        # Converting Index2Word which is a list to a set for better speed in the execution.
+        index2word_set = set(model.wv.index2word)
 
-    # initializing the memory maps
-    print('creating memory map...')
-    trainXfile = csv.reader(open(train_path, 'rt'))
-    testXfile = csv.reader(open(test_path, 'rt'))
-    no_of_reviews_train, maxlen_train = get_shape(trainXfile)
-    no_of_reviews_test, maxlen_test = get_shape(testXfile)
-    maxlen = max(maxlen_test,maxlen_train)
-    shape = np.array([maxlen,no_of_reviews_train,no_of_reviews_test,num_features])
-    shape_path = os.path.join(output, 'shape')
-    np.save(shape_path, shape)
-    data2memmap(train_path, 'trainmapX', no_of_reviews_train, maxlen, num_features, output)
-    data2memmap(test_path, 'testmapX', no_of_reviews_test, maxlen, num_features, output)
+        df=pd.read_csv(path_eval)
+        classes = list(df['label'])
+        df_path = os.path.join(output, 'EvaluationDatalabel.pickle')
+        with open(df_path, 'wb') as f:
+            pickle.dump(classes, f)
+
+        clean_train_reviews = []
+        eval_path = os.path.join(output, 'EvaluationDataVec.csv')
+        with open(eval_path, "w") as csv_file:
+            writer = csv.writer(csv_file, delimiter=',')
+            for review in tqdm(eval['text']):
+                clean_train_reviews=review_wordlist(review, remove_stopwords=True)
+                trainDataVecs=featureVecMethod(clean_train_reviews, model, num_features)
+                writer.writerow(trainDataVecs)
+
+        # initializing the memory maps
+        print('creating memory map...')
+        evalXfile = csv.reader(open(eval_path, 'rt'))
+        no_of_reviews_eval, maxlen_eval = get_shape(evalXfile)
+        shape = np.array([maxlen_eval,no_of_reviews_eval,num_features])
+        shape_path = os.path.join(output, 'eval_shape')
+        np.save(shape_path, shape)
+        data2memmap(eval_path, 'evalmapX', no_of_reviews_eval, maxlen_eval, num_features, output)
+
+    else:
+        mkdir_p(sys.argv[2])
+        path_train = os.path.join(input, 'Train.csv')
+        path_test = os.path.join(input, 'Test.csv')
+        train = pd.read_csv(path_train)
+        test = pd.read_csv(path_test)
+        # Creating the model and setting values for the various parameters, To do: finetuning
+        min_word_count = 40  # Minimum word count
+        num_workers = 4  # Number of parallel threads
+        context = 10  # Context window size
+        downsampling = 1e-3  # (0.001) Downsample setting for frequent words
+        model_path = os.path.join(input, "features_model")
+        if path.exists(model_path):
+            model = word2vec.Word2Vec.load(os.path.join(input, "features_model"))
+            num_features = model.vector_size
+        else:
+            print('Error: model not found')
+
+        # This will give the total number of words in the vocabulary created from this dataset
+        model.wv.syn0.shape
+
+        # Converting Index2Word which is a list to a set for better speed in the execution.
+        index2word_set = set(model.wv.index2word)
+
+        # Save Labels
+        df=pd.read_csv('data/prepared/Train.csv')
+        classes = list(df['label'])
+        df_path = os.path.join(output, 'trainDatalabel.pickle')
+        with open(df_path, 'wb') as f:
+            pickle.dump(classes, f)
+
+        df=pd.read_csv('data/prepared/Test.csv')
+        classes = list(df['label'])
+        df_path = os.path.join(output, 'testDatalabel.pickle')
+        with open(df_path, 'wb') as f:
+            pickle.dump(classes, f)
+
+        # Calculating average feature vector for training set
+        clean_train_reviews = []
+        train_path = os.path.join(output, 'trainDataVec.csv')
+        with open(train_path, "w") as csv_file:
+            writer = csv.writer(csv_file, delimiter=',')
+            for review in tqdm(train['text']):
+                clean_train_reviews=review_wordlist(review, remove_stopwords=True)
+                trainDataVecs=featureVecMethod(clean_train_reviews, model, num_features)
+                writer.writerow(trainDataVecs)
+
+        # Calculating average feature vector for test set
+        clean_test_reviews = []
+        test_path = os.path.join(output, 'testDataVec.csv')
+        with open(test_path, "w") as csv_file:
+            writer = csv.writer(csv_file, delimiter=',')
+            for review in tqdm(test['text']):
+                clean_test_reviews=review_wordlist(review, remove_stopwords=True)
+                testDataVecs=featureVecMethod(clean_test_reviews, model, num_features)
+                writer.writerow(testDataVecs)
+
+        # initializing the memory maps
+        print('creating memory map...')
+        trainXfile = csv.reader(open(train_path, 'rt'))
+        testXfile = csv.reader(open(test_path, 'rt'))
+        no_of_reviews_train, maxlen_train = get_shape(trainXfile)
+        no_of_reviews_test, maxlen_test = get_shape(testXfile)
+        maxlen = max(maxlen_test,maxlen_train)
+        shape = np.array([maxlen,no_of_reviews_train,no_of_reviews_test,num_features])
+        shape_path = os.path.join(output, 'shape')
+        np.save(shape_path, shape)
+        data2memmap(train_path, 'trainmapX', no_of_reviews_train, maxlen, num_features, output)
+        data2memmap(test_path, 'testmapX', no_of_reviews_test, maxlen, num_features, output)
