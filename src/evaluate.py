@@ -54,11 +54,8 @@ if __name__ == '__main__':
     model = keras.models.load_model(model_path)
 
 
-    #evaluate model
+    #predict labels
 
     predEvalY = model.predict(evalX)
     print(predEvalY)
-
-    #acc = model.evaluate(evalX,evalY,batch_size=1)
-    #print(acc)
 

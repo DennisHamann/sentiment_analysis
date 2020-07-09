@@ -78,7 +78,7 @@ def data2memmap(path,mmap,no_of_reviews,maxlen,num_features,output):
            wordtmp = wordtmp.split(' ')
            review.append(np.array(wordtmp).astype('float'))
         if review_length > 1:
-            for i in range(review_length-1):
+            for i in range(review_length):
                 wordtmp = row[i].replace('        ', ' ').replace('       ', ' ').replace('      ', ' ').replace('     ', ' ').replace('    ', ' ').replace('   ', ' ').replace('  ', ' ').replace(' ]', '').replace(']', '').replace('[ ', '').replace('[', '').replace('\n', '')
                 wordtmp = wordtmp.split(' ')
                 review.append(np.array(wordtmp).astype('float'))
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     else:
         print('Error: model not found')
 
-    if sys.argv[3] == 'evaluation':
+    if sys.argv.__len__() == 4:
         print('Running evaluation featurization...')
         path_eval = os.path.join(input, 'Evaluation.csv')
         eval = pd.read_csv(path_eval)
