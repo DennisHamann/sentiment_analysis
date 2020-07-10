@@ -103,15 +103,16 @@ if __name__ == '__main__':
         zf.close()  
         df = pd.read_csv('data/prepared/dataset.csv')
         df_new = df[df["text"].notnull()]
+        df_new = df[["text", "label"]]
         train, test = train_test_split(df_new, test_size=split)  
         path_train = os.path.join(output, 'Train.csv')
         path_test = os.path.join(output, 'Test.csv')
-        train.to_csv(path_train)   
-        test.to_csv(path_test)   
+        train[["text", "label"]].to_csv(path_train)   
+        test[["text", "label"]].to_csv(path_test)   
         
     sentences = []
     print("Parsing sentences from training set")
-    for review in train["text"]:
+    for review in train["text"].fillna(""):
         sentences += review_sentences(review, tokenizer)
 
    
@@ -136,7 +137,7 @@ if __name__ == '__main__':
     model.init_sims(replace=True)
 
     # Saving the model for later use. Can be loaded using Word2Vec.load()
-    model_name = "w2v_model"
+    model_name = "features_model"
     model_path = os.path.join(output, model_name)
     model.save(model_path)
 
