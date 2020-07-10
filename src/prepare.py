@@ -102,7 +102,6 @@ if __name__ == '__main__':
         zf.extractall(output)
         zf.close()  
         df = pd.read_csv('data/prepared/dataset.csv')
-        df_new = df[df["text"].notnull()]
         df_new = df[["text", "label"]]
         train, test = train_test_split(df_new, test_size=split)  
         path_train = os.path.join(output, 'Train.csv')
