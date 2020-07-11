@@ -1,12 +1,14 @@
-md5: 48069afa52d6e62f6d2816af9c3c7d42
-cmd: python3 src/prepare.py data/dataset data/prepared
+md5: f90da84479f72f81605409c4d4de2881
+cmd: python3 src/prepare.py data/dataset/ data/prepared/ clothing_set.zip
 deps:
-- md5: 9850e2034732255193e8cd79efefe31e
+- md5: e5c89b70e8a571321dbbbb4c425e005b
   path: src/prepare.py
-- md5: cd8a92af0e15242bd5f081be652f7cf6.dir
+- md5: 56ccc80050b515623d9bd799024d7722.dir
   path: data/dataset
+- md5: bdb292529bdea4ce26fced0c2f2b9812
+  path: data/dataset/clothing_set.zip
 outs:
-- md5: 969068e6ff1a215984b29f3bce7322ed.dir
+- md5: 6a52bc96129dec61637a41935ad946e1.dir
   path: data/prepared
   cache: true
   metric: false
