@@ -7,6 +7,8 @@ from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
 import pickle
 import random
+from sklearn.preprocessing import LabelBinarizer
+from sklearn.utils.class_weight import compute_class_weight
 
 
 
@@ -19,20 +21,21 @@ def mkdir_p(path):
         else:
             raise
 
-def train_model(model,trainX,trainY,testX,testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize):
-    model.fit(generator(trainX,trainY,batch_size,vecsize,no_of_reviews_train,maxlen), epochs=3, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size,vecsize,no_of_reviews_test,maxlen), validation_steps=int(no_of_reviews_train/batch_size))
+def train_model(model,trainX,trainY,testX,testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,lensetY,d_class_weights):
+    model.fit(generator(trainX,trainY,batch_size,vecsize,no_of_reviews_train,maxlen,lensetY),class_weight=d_class_weights, epochs=3, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size,vecsize,no_of_reviews_test,maxlen,lensetY), validation_steps=int(no_of_reviews_train/batch_size))
+
     return model
 
-def get_model(input_shape,output_shape,loss):
+def get_model(input_shape,output_shape,loss,metric):
     model = Sequential()
     #add LSTM layer
-    model.add(LSTM(8,input_shape=input_shape))
+    model.add(LSTM(1024,input_shape=input_shape, use_bias=False))
     #prevent overfitting
     model.add(Dropout(0.1))
-    #binary output - maybo more?
+    #output
     model.add(Dense(output_shape, activation='sigmoid'))
     #define optimizer, metric
-    model.compile('adam',loss,metrics=['accuracy'])
+    model.compile('adam',loss,metrics=[metric])
     return model
 
 def get_data(no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,input):
@@ -48,17 +51,31 @@ def get_data(no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,input):
     testY = pickle.load(testYfile)
     return trainX, testX, trainY, testY
 
-def generator(X,Y,batch_size,vecsize,no_of_reviews,maxlen):
-    batchX = np.zeros((batch_size,maxlen,vecsize))
-    batchY = np.zeros((batch_size))
-    index = np.array(range(no_of_reviews - 1))
-    Y=np.array(Y)
-    while True:
-        random.shuffle(index)
-        for i in range(int((no_of_reviews-1)/batch_size)):
-            batchX[:,:,:] = X[index[i*batch_size:(i+1)*batch_size],:,:]
-            batchY[:] = Y[index[i*batch_size:(i+1)*batch_size]]
-            yield batchX, batchY
+def generator(X,Y,batch_size,vecsize,no_of_reviews,maxlen,lensetY):
+    if lensetY == 2:
+        batchX = np.zeros((batch_size,maxlen,vecsize))
+        batchY = np.zeros((batch_size))
+        index = np.array(range(no_of_reviews - 1))
+        Y=np.array(Y)
+        while True:
+            random.shuffle(index)
+            for i in range(int((no_of_reviews-1)/batch_size)):
+                batchX[:,:,:] = X[index[i*batch_size:(i+1)*batch_size],:,:]
+                batchY[:] = Y[index[i*batch_size:(i+1)*batch_size]]
+                yield batchX, batchY
+    else:
+        bin = LabelBinarizer()
+        bin.fit(Y)
+        batchX = np.zeros((batch_size, maxlen, vecsize))
+        batchY = np.zeros((batch_size,lensetY))
+        index = np.array(range(no_of_reviews - 1))
+        Y = bin.transform(Y)
+        while True:
+            random.shuffle(index)
+            for i in range(int((no_of_reviews - 1) / batch_size)):
+                batchX[:, :, :] = X[index[i * batch_size:(i + 1) * batch_size], :, :]
+                batchY[:,:] = Y[index[i * batch_size:(i + 1) * batch_size],:]
+                yield batchX, batchY
 
 
 if __name__ == '__main__':
@@ -85,27 +102,32 @@ if __name__ == '__main__':
     #determine number of label classes
     lensetY=len(set(testY))
 
-    #set loss function with respect to label classes
+    #get model
     if lensetY == 2:
         loss='binary_crossentropy'
+        metric='accuracy'
+        print("defining model...")
+        model = get_model((maxlen,vecsize), lensetY-1,loss,metric)
     else:
-        loss='SparseCategoricalCrossentropy'
+        loss='CategoricalCrossentropy'
+        metric='accuracy'
+        print("defining model...")
+        model = get_model((maxlen, vecsize), lensetY, loss, metric)
 
-    #get model
-    print("defining model...")
-    model = get_model((maxlen,vecsize), lensetY-1,loss)
 
     #training model
     batch_size = 100
+    class_weights = compute_class_weight('balanced', np.unique(trainY), trainY)
+    d_class_weights = dict(enumerate(class_weights))
     print('training model...')
-    model = train_model(model, trainX, trainY, testX, testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize)
-
+    model = train_model(model, trainX, trainY, testX, testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,lensetY,d_class_weights)
     #save model to output folder
     model.save(writepath)
 
 
-# python3 src/prepare.py data/dataset data/prepared
+# python3 src/prepare.py data/dataset/ data/prepared/ clothing_set.zip
+# python3 src/prepare.py data/dataset data/prepared imdb_trainset.zip imdb_testset.zip
 # python3 src/featurization.py data/prepared data/features
-# python src/train.py data/features data/models
-
+# python3 src/train.py data/features data/models
+# python3 src/evaluate.py data/models data/features data/scores
 
