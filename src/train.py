@@ -4,12 +4,12 @@ import errno
 
 import numpy as np
 from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout
+from keras.layers import LSTM, Dense, Dropout, Bidirectional
 import pickle
 import random
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.utils.class_weight import compute_class_weight
-
+from tensorflow.python.keras import Sequential
 
 
 def mkdir_p(path):
@@ -21,20 +21,18 @@ def mkdir_p(path):
         else:
             raise
 
-def train_model(model,trainX,trainY,testX,testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,lensetY,d_class_weights):
-    model.fit(generator(trainX,trainY,batch_size,vecsize,no_of_reviews_train,maxlen,lensetY),class_weight=d_class_weights, epochs=3, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size,vecsize,no_of_reviews_test,maxlen,lensetY), validation_steps=int(no_of_reviews_train/batch_size))
+def train_model(model,trainX,trainY,testX,testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,lensetY,d_class_weights,epochs):
+    model.fit(generator(trainX,trainY,batch_size,vecsize,no_of_reviews_train,maxlen,lensetY),class_weight=d_class_weights, epochs=epochs, steps_per_epoch=int(no_of_reviews_train/batch_size), verbose=1, validation_data=generator(testX,testY,batch_size,vecsize,no_of_reviews_test,maxlen,lensetY), validation_steps=int(no_of_reviews_test/batch_size))
+    return model,history
 
-    return model
-
-def get_model(input_shape,output_shape,loss,metric):
+def get_model(input_shape,output_shape,loss,metric,maxlen):
     model = Sequential()
+    model.add(Dropout(0.3))
     #add LSTM layer
-    model.add(LSTM(1024,input_shape=input_shape, use_bias=False))
-    #prevent overfitting
-    model.add(Dropout(0.1))
+    model.add(Bidirectional(LSTM(maxlen),input_shape=input_shape))
+    model.add(Dropout(0.3))
     #output
-    model.add(Dense(output_shape, activation='sigmoid'))
-    #define optimizer, metric
+    model.add(Dense(output_shape, activation='softmax'))
     model.compile('adam',loss,metrics=[metric])
     return model
 
@@ -101,27 +99,26 @@ if __name__ == '__main__':
 
     #determine number of label classes
     lensetY=len(set(testY))
+    batch_size = 100
+    epochs = 30
 
     #get model
     if lensetY == 2:
         loss='binary_crossentropy'
         metric='accuracy'
         print("defining model...")
-        model = get_model((maxlen,vecsize), lensetY-1,loss,metric)
+        model = get_model((maxlen,vecsize), lensetY-1,loss,metric,maxlen)
     else:
         loss='CategoricalCrossentropy'
         metric='accuracy'
         print("defining model...")
-        model = get_model((maxlen, vecsize), lensetY, loss, metric)
-
+        model = get_model((maxlen, vecsize), lensetY, loss, metric,maxlen)
 
     #training model
-    batch_size = 100
     class_weights = compute_class_weight('balanced', np.unique(trainY), trainY)
     d_class_weights = dict(enumerate(class_weights))
     print('training model...')
-    model = train_model(model, trainX, trainY, testX, testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,lensetY,d_class_weights)
-    #save model to output folder
+    model = train_model(model, trainX, trainY, testX, testY,batch_size,no_of_reviews_train,no_of_reviews_test,maxlen,vecsize,lensetY,d_class_weights,epochs)
     model.save(writepath)
 
 

@@ -105,8 +105,8 @@ if __name__ == '__main__':
         df = pd.read_csv('data/prepared/dataset.csv')
 
         # select proper column and adjust names
-        df_new = df[["Text", "Rating"]]
-        df_new = df_new.rename(columns={"Text": "text", "Rating": "label"})
+        df_new = df[["text", "label"]]
+        #df_new = df_new.rename(columns={"Text": "text", "Rating": "label"})
 
         # filter corrupted data and use correct datatype
         df_new = df_new[
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     sentences = list(filter(len, sentences))
    
     # Creating the model and setting values for the various parameters, To do: finetuning
-    num_features = 80  # Word vector dimensionality
+    num_features = 240  # Word vector dimensionality
     min_word_count = 40  # Minimum word count
     num_workers = 4  # Number of parallel threads
     context = 10  # Context window size
